@@ -1,0 +1,42 @@
+   public void RetriveInfo(int driveNumber)
+        {
+
+            Native.MEDIA_TYPE driveType = Native.MEDIA_TYPE.Unknown;
+
+            int returnSize = 0;
+
+            Native.SENDCMDINPARAMS sci = new Native.SENDCMDINPARAMS();
+            Native.SENDCMDOUTPARAMS sco = new Native.SENDCMDOUTPARAMS();
+
+            sci.DriveNumber = (byte)driveNumber;
+            sci.BufferSize = Marshal.SizeOf(sco);
+            sci.DriveRegs.DriveHead = (byte)(0xA0 | driveNumber << 4);
+            sci.DriveRegs.Command = 0xEC;
+            sci.DriveRegs.SectorCount = 1;
+            sci.DriveRegs.SectorNumber = 1;
+
+            if (NativeApi.DeviceIoControl(Handle, Native.DFP_RECEIVE_DRIVE_DATA, sci, Marshal.SizeOf(sci), sco, Marshal.SizeOf(sco), ref returnSize, 0) != 0)
+            {
+                SerialNumber = Helper.SwapChars(sco.IDS.SerialNumber);
+                ProductID = Helper.SwapChars(sco.IDS.ModelNumber);
+                Revision = Helper.SwapChars(sco.IDS.FirmwareRevision);
+                VendorID = sco.IDS.VendorUnique.ToString();
+
+            }
+            else
+            {
+                Log.Logger.GetLogger.Error(Marshal.GetLastWin32Error().ToString());
+            }
+            if ((sco.IDS.GenConfig & 0x80) == 0x40)
+                driveType = Native.MEDIA_TYPE.RemovableMedia;
+            else if ((sco.IDS.GenConfig & 0x40) == 0x40)
+                driveType = Native.MEDIA_TYPE.FixedMedia;
+            else
+                driveType = Native.MEDIA_TYPE.Unknown;
+
+            BusType = driveType.ToString();
+
+
+
+
+        }
